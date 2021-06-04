@@ -1,6 +1,6 @@
-import discord
+from discord_components import Button, ButtonStyle
 from discord.ext import commands
-import asyncio
+import os
 
 class FileExplorer(commands.Cog):
 
@@ -10,7 +10,19 @@ class FileExplorer(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def fm(self, ctx):
-        await ctx.send("woohoo it works")
+        await ctx.send(
+                "placeholder",
+                components=[
+                [
+                    Button(style=ButtonStyle.grey, label="", emoji="⤴️"),
+                    Button(style=ButtonStyle.green, label="GREEN"),
+                    Button(style=ButtonStyle.red, label="RED"),
+                    Button(style=ButtonStyle.grey, label="GREY", disabled=True),
+                ],
+                Button(style=ButtonStyle.blue, label="BLUE"),
+                Button(style=ButtonStyle.URL, label="URL", url="https://www.example.com"),
+            ],
+        )
 
 def setup(bot):
     bot.add_cog(FileExplorer(bot))

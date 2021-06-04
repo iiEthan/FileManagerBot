@@ -1,6 +1,5 @@
 import discord
 import traceback
-import textwrap
 from discord.ext import commands
 
 #
@@ -48,7 +47,7 @@ class CommandErrorHandler(commands.Cog):
             p.add_line(text_page)
 
         pagenumber = 1
-        channel = self.bot.get_channel(805187365898289173)
+        channel = self.bot.get_channel(850226020194713620)
 
         for error_page in p.pages:
 
