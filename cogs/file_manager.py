@@ -3,29 +3,44 @@ from discord_components import Button, ButtonStyle, InteractionType
 from discord.ext import commands
 import os
 
-class FileExplorer(commands.Cog):
+class FileManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
         self.session_message = {}
         self.current_path = os.chdir("./root")
+        self.page = 1
     
     def compile_buttons(self):
         component_list = []
+        total = 0
+        special_list = []
 
-        # Don't show back arrow if at root level
-        if self.current_path != os.fspath("/home"):
-            component_list.append(Button(style=ButtonStyle.blue, label="", emoji="⤴️"))
-            
+        # Back arrow will always be there
+        special_list.append(Button(style=ButtonStyle.blue, label="​", emoji="⤴️"))
+
         # Adds different emojis based on file type
         for filename in os.listdir(self.current_path):
+            total += 1
             if os.path.isdir(filename):
                 component_list.append(Button(style=ButtonStyle.grey, label=filename, emoji="📁"))
             elif os.path.isfile(filename):
                 component_list.append(Button(style=ButtonStyle.grey, label=filename, emoji="📄"))
 
+        if total > 20:
+            if self.page * 20 < total:
+                special_list.insert(1, Button(style=ButtonStyle.blue, label="​​", emoji="➡️"))
+            if self.page > 1:
+                special_list.insert(1, Button(style=ButtonStyle.blue, label="​​​", emoji="⬅️"))
+        
+        # Gets 20 things at a time
+        composite_list = component_list[(self.page - 1) * 20 : (self.page * 20)]
+
+        # Add special buttons to the front
+        special_list.extend(composite_list)
+
         # Splits into sublist every 5 items, to comply with formatting
-        return [component_list[x:x+5] for x in range(0, len(component_list),5)]
+        return [special_list[x:x+5] for x in range(0, len(special_list),5)]
 
     @commands.command()
     @commands.is_owner()
@@ -43,13 +58,27 @@ class FileExplorer(commands.Cog):
         res = await self.bot.wait_for("button_click")
         if res.author.id == ctx.author.id:
 
-            #Back button
-            if res.component.style == ButtonStyle.blue:
+            await res.respond(type=6) # no idea why this needs to be here but it will be very slow without it
+            
+            # Back button
+            if res.component.label == "​":
+                self.page = 1
                 self.current_path == os.chdir("..")
+                await self.fm(ctx)
+
+            # Right Arrow
+            if res.component.label == "​​":
+                self.page += 1
+                await self.fm(ctx)
+
+            # Left Arrow
+            if res.component.label == "​​​":
+                self.page -= 1
                 await self.fm(ctx)
 
             if os.path.isdir(res.component.label):
                 self.current_path = os.chdir(os.getcwd() + "/" + res.component.label)
+                self.page = 1
                 await self.fm(ctx)
 
             elif os.path.isfile(os.getcwd() + "/" + res.component.label):
@@ -59,5 +88,5 @@ class FileExplorer(commands.Cog):
             await self.fm(ctx)
 
 def setup(bot):
-    bot.add_cog(FileExplorer(bot))
+    bot.add_cog(FileManager(bot))
     
