@@ -1,4 +1,5 @@
 from asyncio import TimeoutError
+import discord
 from discord_components import Button, ButtonStyle, InteractionType
 from discord.ext import commands
 import os
@@ -44,7 +45,7 @@ class FileManager(commands.Cog):
         special_list = []
         total = 0
 
-        # Back arrow, refresh, and close button will always be there
+        # Back arrow and refresh buttons will always be there
         special_list.append(Button(style=ButtonStyle.blue, label="​", emoji="⤴️"))
         special_list.append(Button(style=ButtonStyle.blue, label="​​", emoji="🔄"))
 
@@ -55,7 +56,8 @@ class FileManager(commands.Cog):
                 component_list.append(Button(style=ButtonStyle.grey, label=filename, emoji="📁"))
             elif os.path.isfile(filename):
                 component_list.append(Button(style=ButtonStyle.grey, label=filename, emoji="📄"))
-
+        
+        # Add arrow buttons if there are more than 20 items
         if total > 20:
             if self.page * 20 < total:
                 special_list.insert(2, Button(style=ButtonStyle.blue, label="​​​", emoji="➡️"))
@@ -73,37 +75,50 @@ class FileManager(commands.Cog):
 
     
     async def button_manager(self, ctx, res, msg):
+        item_label = res.component.label
         await res.respond(type=6) # no idea why this needs to be here but it will be very slow without it
             
         # Back button
-        if res.component.label == "​":
-                self.page = 1
-                self.current_path == os.chdir("..")
-                await self.fm(ctx)
+        if item_label == "​":
+            self.page = 1
+            self.current_path == os.chdir("..")
+            await self.fm(ctx)
 
         # Refresh
-        if res.component.label == "​​":
-                await self.fm(ctx)
+        if item_label == "​​":
+            await self.fm(ctx)
 
         # Right Arrow
-        if res.component.label == "​​​":
-                self.page += 1
-                await self.fm(ctx)
+        if item_label == "​​​":
+            self.page += 1
+            await self.fm(ctx)
 
         # Left Arrow
-        if res.component.label == "​​​​":
-                self.page -= 1
-                await self.fm(ctx)
+        if item_label == "​​​​":
+            self.page -= 1
+            await self.fm(ctx)
 
         # Folder
-        if os.path.isdir(res.component.label):
-                self.current_path = os.chdir(os.getcwd() + "/" + res.component.label)
-                self.page = 1
-                await self.fm(ctx)
+        if os.path.isdir(item_label):
+            self.current_path = os.chdir(os.getcwd() + "/" + item_label)
+            self.page = 1
+            await self.fm(ctx)
+
         # File
-        elif os.path.isfile(os.getcwd() + "/" + res.component.label):
-                await msg.edit("File opening is not yet a feature") ### TODO!!!!!!!
+        elif os.path.isfile(os.getcwd() + "/" + item_label):
+            delete_msg = await ctx.send(file=discord.File(os.fspath(os.getcwd()) + "/" + item_label), components=[Button(style=ButtonStyle.red, label="Delete", emoji="🗑️")])
+
+            try:
+                res = await self.bot.wait_for("button_click", timeout=15)
+            except TimeoutError:
+                await delete_msg.edit("Timed out after 15 seconds of inactivity.", components=[Button(style=ButtonStyle.red, label="Delete", emoji="🗑️", disabled=True)])
+                
+            await res.respond(type=6)
+            if res.component.label == "Delete" and ctx.author.id == res.author.id:
+                await delete_msg.edit("Filed deleted.", components=[Button(style=ButtonStyle.red, label="Delete", emoji="🗑️", disabled=True)])
+                os.remove(os.fspath(os.getcwd()) + "/" + item_label)
+
+            await self.fm(ctx)
 
 def setup(bot):
     bot.add_cog(FileManager(bot))
-    
