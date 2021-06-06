@@ -47,7 +47,7 @@ class CommandErrorHandler(commands.Cog):
             p.add_line(text_page)
 
         pagenumber = 1
-        channel = self.bot.get_channel(850226020194713620)
+        channel = self.bot.get_channel(850566279287013426)
 
         for error_page in p.pages:
 
