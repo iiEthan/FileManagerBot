@@ -12,7 +12,7 @@ class FileManager(commands.Cog):
         self.current_path = os.chdir("./root")
         self.page = 1
 
-    @commands.command()
+    @commands.command(name="fm")
     @commands.is_owner()
     async def fm(self, ctx):
 
@@ -40,7 +40,7 @@ class FileManager(commands.Cog):
             await res.respond(type=InteractionType.ChannelMessageWithSource, content="You do not have permission to do this!")
             await self.fm(ctx)
 
-    @commands.command()
+    @commands.command(name="save")
     @commands.is_owner()
     async def save(self, ctx):
         if ctx.author.id not in self.session_message:
@@ -50,13 +50,26 @@ class FileManager(commands.Cog):
         if str(ctx.message.attachments) == "[]": # Checks if there is an attachment on the message
             await ctx.send("Please provide a valid attachment with the message.")
             return
-        else: # If there is it gets the filename from message.attachments
+        else: # Saves file to folder
             split_v1 = str(ctx.message.attachments).split("filename='")[1]
             filename = str(split_v1).split("' ")[0]
             await ctx.message.attachments[0].save(fp="{}/{}".format(os.getcwd(), filename)) # saves the file
             await ctx.message.add_reaction("✅")
             await self.fm(ctx)
 
+    @commands.command(name="mkdir")
+    @commands.is_owner()
+    async def mkdir(self, ctx, *, folder_name):
+        if ctx.author.id not in self.session_message:
+            await ctx.send("Please start a valid session with e!fm")
+            return
+
+        try: 
+            os.mkdir(os.getcwd() + "/" + folder_name)
+            await ctx.message.add_reaction("✅")
+            await self.fm(ctx)
+        except OSError as error: 
+            await ctx.send(error)
 
     def compile_buttons(self):
         component_list = []
@@ -139,6 +152,32 @@ class FileManager(commands.Cog):
                 os.remove(os.fspath(os.getcwd()) + "/" + item_label)
 
             await self.fm(ctx)
+
+    @mkdir.error
+    async def mkdir_errors(self, ctx: commands.Context, error: commands.CommandError):
+        if isinstance(error, commands.MissingRequiredArgument):
+            message = f"Missing a required argument: {error.param}"
+        elif isinstance(error, commands.NotOwner):
+            message = "You are not the owner."
+    
+        await ctx.send(message, delete_after=5)
+        await ctx.message.delete(delay=5)
+
+    @fm.error
+    async def fm_errors(self, ctx: commands.Context, error: commands.CommandError):
+        if isinstance(error, commands.NotOwner):
+            message = "You are not the owner."
+
+        await ctx.send(message, delete_after=5)
+        await ctx.message.delete(delay=5)
+
+    @save.error
+    async def save_errors(self, ctx: commands.Context, error: commands.CommandError):
+        if isinstance(error, commands.NotOwner):
+            message = "You are not the owner."
+
+        await ctx.send(message, delete_after=5)
+        await ctx.message.delete(delay=5)
 
 def setup(bot):
     bot.add_cog(FileManager(bot))
