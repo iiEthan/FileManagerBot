@@ -40,6 +40,24 @@ class FileManager(commands.Cog):
             await res.respond(type=InteractionType.ChannelMessageWithSource, content="You do not have permission to do this!")
             await self.fm(ctx)
 
+    @commands.command()
+    @commands.is_owner()
+    async def save(self, ctx):
+        if ctx.author.id not in self.session_message:
+            await ctx.send("Please start a valid session with e!fm")
+            return
+
+        if str(ctx.message.attachments) == "[]": # Checks if there is an attachment on the message
+            await ctx.send("Please provide a valid attachment with the message.")
+            return
+        else: # If there is it gets the filename from message.attachments
+            split_v1 = str(ctx.message.attachments).split("filename='")[1]
+            filename = str(split_v1).split("' ")[0]
+            await ctx.message.attachments[0].save(fp="{}/{}".format(os.getcwd(), filename)) # saves the file
+            await ctx.message.add_reaction("✅")
+            await self.fm(ctx)
+
+
     def compile_buttons(self):
         component_list = []
         special_list = []
@@ -54,6 +72,8 @@ class FileManager(commands.Cog):
             total += 1
             if os.path.isdir(filename):
                 component_list.append(Button(style=ButtonStyle.grey, label=filename, emoji="📁"))
+            elif filename.endswith(".png") or filename.endswith(".jpg") or filename.endswith(".jpeg"):
+                component_list.append(Button(style=ButtonStyle.grey, label=filename, emoji="🖼️"))
             elif os.path.isfile(filename):
                 component_list.append(Button(style=ButtonStyle.grey, label=filename, emoji="📄"))
         
